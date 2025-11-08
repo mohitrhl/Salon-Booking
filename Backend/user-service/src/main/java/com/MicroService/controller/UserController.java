@@ -1,35 +1,52 @@
 package com.MicroService.controller;
 
+
 import com.MicroService.modal.User;
-import com.MicroService.repository.UserRepository;
+
+import com.MicroService.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserService userService;
 
     @PostMapping("api/users")
-    public User createUser(@RequestBody User user){
-        return userRepository.save(user);
+    public ResponseEntity<User> createUser(@RequestBody @Valid User user){
+        User createdUser = userService.createUser(user);
+        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 
     @GetMapping("/api/users")
-    public User getUser(){
-        User user = new User();
-        user.setEmail("mohit@gmail.com");
-        user.setFullName("mohit kumar");
-        user.setPhone("8778150648");
-        user.setRole("Customer");
+    public ResponseEntity<List<User>> getUsers(){
+        List<User>users = userService.getAllUsers();
+        return new ResponseEntity<>(users, HttpStatus.OK);
+    }
 
-        return user;
+    @GetMapping("/api/users/{userId}")
+    public ResponseEntity<User> getUserById(@PathVariable("user id") Long id) throws Exception{
+        User user = userService.getUserById(id);
+        return new ResponseEntity<>(user , HttpStatus.OK);
+
+    }
+
+    @PutMapping("/api/users/{id}")
+    public ResponseEntity<User> updateUser(@RequestBody User user,
+                           @PathVariable Long id) throws Exception {
+        User updatedUser = userService.getUserById(id);
+        return new ResponseEntity<>(updatedUser , HttpStatus.OK);
+
+    }
+    public ResponseEntity<String> deleteById(@PathVariable Long id) throws Exception {
+        userService.deleteUser(id);
+        return new ResponseEntity<>("User deleted", HttpStatus.ACCEPTED);
 
     }
 }
