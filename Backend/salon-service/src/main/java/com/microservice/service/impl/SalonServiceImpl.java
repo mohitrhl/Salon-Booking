@@ -36,25 +36,43 @@ public class SalonServiceImpl implements SalonService {
     }
 
     @Override
-    public Salon updateSalon(Long salonId, Salon salon, UserDTO user) throws Exception {
+    public Salon updateSalon(Long salonId, Salon salonRequest, UserDTO user) throws Exception {
+        // 1️⃣ Fetch existing salon
         Salon existingSalon = getSalonById(salonId);
-        if (existingSalon!=null && salon.getOwnerId().equals(user.getId())) {
-
-            existingSalon.setName(salon.getName());
-            existingSalon.setAddress(salon.getAddress());
-            existingSalon.setPhoneNumber(salon.getPhoneNumber());
-            existingSalon.setEmail(salon.getEmail());
-            existingSalon.setCity(salon.getCity());
-            existingSalon.setOpen(salon.isOpen());
-            existingSalon.setHomeService(salon.isHomeService());
-            existingSalon.setActive(salon.isActive());
-            existingSalon.setOpenTime(salon.getOpenTime());
-            existingSalon.setCloseTime(salon.getCloseTime());
-
-            return salonRepo.save(existingSalon);
+        if (existingSalon == null) {
+            throw new Exception("Salon not found with ID: " + salonId);
         }
-        throw new Exception("salon not exist");
+
+        // 2️⃣ Check ownership
+        if (existingSalon.getOwnerId() == null || !existingSalon.getOwnerId().equals(user.getId())) {
+            throw new Exception("Unauthorized to update this salon");
+        }
+
+        // 3️⃣ Update only non-null fields
+        if (salonRequest.getName() != null)
+            existingSalon.setName(salonRequest.getName());
+        if (salonRequest.getAddress() != null)
+            existingSalon.setAddress(salonRequest.getAddress());
+        if (salonRequest.getPhoneNumber() != null)
+            existingSalon.setPhoneNumber(salonRequest.getPhoneNumber());
+        if (salonRequest.getEmail() != null)
+            existingSalon.setEmail(salonRequest.getEmail());
+        if (salonRequest.getCity() != null)
+            existingSalon.setCity(salonRequest.getCity());
+        if (salonRequest.getOpenTime() != null)
+            existingSalon.setOpenTime(salonRequest.getOpenTime());
+        if (salonRequest.getCloseTime() != null)
+            existingSalon.setCloseTime(salonRequest.getCloseTime());
+
+        // Boolean fields: if present in request, apply update
+        existingSalon.setOpen(salonRequest.isOpen());
+        existingSalon.setHomeService(salonRequest.isHomeService());
+        existingSalon.setActive(salonRequest.isActive());
+
+        // 4️⃣ Save
+        return salonRepo.save(existingSalon);
     }
+
 
     @Override
     public List<Salon> getAllSalons() {
