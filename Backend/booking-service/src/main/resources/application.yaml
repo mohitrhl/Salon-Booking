@@ -1,16 +1,15 @@
 server:
-  port: 5001
+  port: 5003
 
 spring:
   application:
-    name: user-service
+    name: booking-service
 
   datasource:
-    url: jdbc:mysql://localhost:3306/salon_userdb?createDatabaseIfNotExist=true
+    url: "jdbc:mysql://localhost:3306/salon_bookingdb?createDatabaseIfNotExist=true"
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: "mohitrhl001@"
-
+    password: mohitrhl001@
   jpa:
     hibernate:
       ddl-auto: update
