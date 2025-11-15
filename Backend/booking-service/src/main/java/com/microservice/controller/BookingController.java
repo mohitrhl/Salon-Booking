@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +35,8 @@ public class BookingController {
 
         SalonDTO salon = new SalonDTO();
         salon.setId(salonId);
+        salon.setOpenTime(LocalTime.now());
+        salon.setCloseTime(LocalTime.now().plusHours(12));
 
         if(salon.getId()==null){
             throw new Exception("Salon not found");
