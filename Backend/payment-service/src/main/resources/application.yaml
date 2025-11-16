@@ -1,0 +1,21 @@
+server:
+  port: 5006
+
+spring:
+  application:
+    name: payment-service
+
+  datasource:
+    url: "jdbc:mysql://localhost:3306/salon_paymentdb?createDatabaseIfNotExist=true"
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: mohitrhl001@
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+razorpay:
+  api:
+    key: "rzp_test_RgKSG3cQCs5mgE"
+    secret: "sGrsHD886RMncB7H7oToyGrz"
