@@ -19,3 +19,12 @@ razorpay:
   api:
     key: "rzp_test_RgKSG3cQCs5mgE"
     secret: "sGrsHD886RMncB7H7oToyGrz"
+
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    fetchRegistry: true
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: http://localhost:8070/eureka/
