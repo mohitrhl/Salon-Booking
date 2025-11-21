@@ -1,10 +1,12 @@
 package com.MicroService.controller;
 
 
+import com.MicroService.exception.UserException;
+import com.MicroService.mapper.UserMapper;
 import com.MicroService.modal.User;
 
+import com.MicroService.playload.dto.UserDTO;
 import com.MicroService.service.UserService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,36 +19,39 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final UserMapper userMapper;
 
-    @PostMapping("api/users")
-    public ResponseEntity<User> createUser(@RequestBody @Valid User user){
-        User createdUser = userService.createUser(user);
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-    }
 
-    @GetMapping("/api/users")
-    public ResponseEntity<List<User>> getUsers(){
-        List<User>users = userService.getAllUsers();
-        return new ResponseEntity<>(users, HttpStatus.OK);
+
+    @GetMapping("/api/users/profile")
+    public ResponseEntity<UserDTO> getUserFromJwtToken(
+            @RequestHeader("Authorization") String jwt) throws Exception {
+
+        User user = userService.getUserFromJwtToken(jwt);
+        UserDTO userDTO=userMapper.mapToDTO(user);
+
+
+        return new ResponseEntity<>(userDTO,HttpStatus.OK);
     }
 
     @GetMapping("/api/users/{userId}")
-    public ResponseEntity<User> getUserById(@PathVariable("user id") Long id) throws Exception{
-        User user = userService.getUserById(id);
-        return new ResponseEntity<>(user , HttpStatus.OK);
+    public ResponseEntity<UserDTO> getUserById(
+            @PathVariable Long userId
+    ) throws UserException {
+        User user = userService.getUserById(userId);
+        if(user==null) {
+            throw new UserException("User not found");
+        }
+        UserDTO userDTO=userMapper.mapToDTO(user);
 
+        return new ResponseEntity<>(userDTO,HttpStatus.OK);
     }
 
-    @PutMapping("/api/users/{id}")
-    public ResponseEntity<User> updateUser(@RequestBody User user,
-                           @PathVariable Long id) throws Exception {
-        User updatedUser = userService.getUserById(id);
-        return new ResponseEntity<>(updatedUser , HttpStatus.OK);
+    @GetMapping("/api/users")
+    public ResponseEntity<List<User>> getUsers(
+    ) throws UserException {
+        List<User> users = userService.getAllUsers();
 
-    }
-    public ResponseEntity<String> deleteById(@PathVariable Long id) throws Exception {
-        userService.deleteUser(id);
-        return new ResponseEntity<>("User deleted", HttpStatus.ACCEPTED);
-
+        return new ResponseEntity<>(users,HttpStatus.OK);
     }
 }

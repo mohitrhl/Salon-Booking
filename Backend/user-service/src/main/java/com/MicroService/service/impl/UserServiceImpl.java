@@ -2,62 +2,46 @@ package com.MicroService.service.impl;
 
 import com.MicroService.exception.UserException;
 import com.MicroService.modal.User;
+import com.MicroService.playload.dto.KeycloakUserinfo;
 import com.MicroService.repository.UserRepository;
+import com.MicroService.service.KeycloakUserService;
 import com.MicroService.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final KeycloakUserService keycloakUserService;
+
+
 
     @Override
-    public User createUser(User user) {
-        return userRepository.save(user);
+    public User getUserByEmail(String email) throws UserException {
+        User user=userRepository.findByEmail(email);
+        if(user==null){
+            throw new UserException("User not found with email: "+email);
+        }
+        return user;
+    }
+
+    @Override
+    public User getUserFromJwtToken(String jwt) throws Exception {
+        KeycloakUserinfo userinfo = keycloakUserService.fetchUserProfileByJwt(jwt);
+        return userRepository.findByEmail(userinfo.getEmail());
     }
 
     @Override
     public User getUserById(Long id) throws UserException {
-        Optional<User> otp = userRepository.findById(id);
-        if(otp.isPresent()){
-            return otp.get();
-        }
-        throw new UserException("user not found");
+        return userRepository.findById(id).orElse(null);
     }
 
     @Override
     public List<User> getAllUsers() {
         return userRepository.findAll();
-    }
-
-    @Override
-    public User updateUser(User user, Long id) throws UserException {
-        Optional<User> otp = userRepository.findById(id);
-        if(otp.isEmpty()){
-            throw new UserException("user not found with id" +id);
-        }
-        User existingUser = otp.get() ;
-
-        existingUser.setFullName(user.getFullName());
-        existingUser.setEmail(user.getEmail());
-        existingUser.setRole(user.getRole());
-        existingUser.setUsername(user.getUsername());
-
-        return userRepository.save(existingUser);
-    }
-
-    @Override
-    public String deleteUser(Long id) throws UserException {
-        Optional<User> otp = userRepository.findById(id);
-        if(otp.isEmpty()){
-            throw new UserException("user not found with id" +id);
-        }
-        userRepository.deleteById(otp.get().getId());
-        return "user deleted";
     }
 }
