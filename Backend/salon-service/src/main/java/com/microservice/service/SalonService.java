@@ -10,7 +10,7 @@ public interface SalonService {
 
     Salon createSalon(SalonDTO salon, UserDTO user);
 
-    Salon updateSalon(Long salonId, Salon salon, UserDTO user) throws Exception;
+    Salon updateSalon(Long salonId, Salon salon) throws Exception;
 
     List<Salon> getAllSalons();
 

@@ -1,7 +1,11 @@
 package com.microservice.controller;
 
 import com.microservice.modal.Category;
+import com.microservice.payload.dto.SalonDTO;
+import com.microservice.payload.dto.UserDTO;
 import com.microservice.service.CategoryService;
+import com.microservice.service.clients.SalonFeignClient;
+import com.microservice.service.clients.UserFeignClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +19,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CategoryController {
 
-    private CategoryService categoryService;
+    private final CategoryService categoryService;
+    private final UserFeignClient userService;
+    private final SalonFeignClient salonService;
 
     // Get all Categories
     @GetMapping
@@ -27,9 +33,13 @@ public class CategoryController {
     // Get all Categories by Salon ID
     @GetMapping("/salon/{id}")
     public ResponseEntity<Set<Category>> getCategoriesBySalon(
-            @PathVariable Long id) throws Exception {
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String jwt) throws Exception {
+        UserDTO user=userService.getUserFromJwtToken(jwt).getBody();
+        SalonDTO salon=salonService.getSalonById(id).getBody();
 
-        Set<Category> categories = categoryService.getAllCategoriesBySalon(id);
+        Set<Category> categories = categoryService
+                .getAllCategoriesBySalon(salon.getId());
         return new ResponseEntity<>(categories, HttpStatus.OK);
     }
 

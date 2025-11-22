@@ -14,10 +14,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SalonServiceImpl implements SalonService {
 
-    private final SalonRepo salonRepo;
+    private final SalonRepo salonRepository;
 
     @Override
     public Salon createSalon(SalonDTO req, UserDTO user) {
+
         Salon salon=new Salon();
         salon.setName(req.getName());
         salon.setImages(req.getImages());
@@ -32,65 +33,48 @@ public class SalonServiceImpl implements SalonService {
         salon.setOwnerId(user.getId());
         salon.setActive(true);
 
-        return salonRepo.save(salon);
+        return salonRepository.save(salon);
     }
 
     @Override
-    public Salon updateSalon(Long salonId, Salon salonRequest, UserDTO user) throws Exception {
-        // 1️⃣ Fetch existing salon
+    public Salon updateSalon(Long salonId, Salon salon) throws Exception {
+
         Salon existingSalon = getSalonById(salonId);
-        if (existingSalon == null) {
-            throw new Exception("Salon not found with ID: " + salonId);
+        if (existingSalon!=null) {
+
+            existingSalon.setName(salon.getName());
+            existingSalon.setAddress(salon.getAddress());
+            existingSalon.setPhoneNumber(salon.getPhoneNumber());
+            existingSalon.setEmail(salon.getEmail());
+            existingSalon.setCity(salon.getCity());
+            existingSalon.setOpen(salon.isOpen());
+            existingSalon.setHomeService(salon.isHomeService());
+            existingSalon.setActive(salon.isActive());
+            existingSalon.setOpenTime(salon.getOpenTime());
+            existingSalon.setCloseTime(salon.getCloseTime());
+
+            return salonRepository.save(existingSalon);
         }
-
-        // 2️⃣ Check ownership
-        if (existingSalon.getOwnerId() == null || !existingSalon.getOwnerId().equals(user.getId())) {
-            throw new Exception("Unauthorized to update this salon");
-        }
-
-        // 3️⃣ Update only non-null fields
-        if (salonRequest.getName() != null)
-            existingSalon.setName(salonRequest.getName());
-        if (salonRequest.getAddress() != null)
-            existingSalon.setAddress(salonRequest.getAddress());
-        if (salonRequest.getPhoneNumber() != null)
-            existingSalon.setPhoneNumber(salonRequest.getPhoneNumber());
-        if (salonRequest.getEmail() != null)
-            existingSalon.setEmail(salonRequest.getEmail());
-        if (salonRequest.getCity() != null)
-            existingSalon.setCity(salonRequest.getCity());
-        if (salonRequest.getOpenTime() != null)
-            existingSalon.setOpenTime(salonRequest.getOpenTime());
-        if (salonRequest.getCloseTime() != null)
-            existingSalon.setCloseTime(salonRequest.getCloseTime());
-
-        // Boolean fields: if present in request, apply update
-        existingSalon.setOpen(salonRequest.isOpen());
-        existingSalon.setHomeService(salonRequest.isHomeService());
-        existingSalon.setActive(salonRequest.isActive());
-
-        // 4️⃣ Save
-        return salonRepo.save(existingSalon);
+        throw new Exception("salon not exist");
     }
-
 
     @Override
     public List<Salon> getAllSalons() {
-        return salonRepo.findAll();
+        return salonRepository.findAll();
     }
 
     @Override
     public Salon getSalonById(Long salonId) {
-        return salonRepo.findById(salonId).orElse(null);
+        return salonRepository.findById(salonId).orElse(null);
     }
 
     @Override
     public Salon getSalonByOwnerId(Long ownerId) {
-        return salonRepo.findByOwnerId(ownerId);
+        return salonRepository.findByOwnerId(ownerId);
     }
 
     @Override
     public List<Salon> searchSalonByCity(String city) {
-        return salonRepo.searchSalons(city);
+        return salonRepository.searchSalons(city);
     }
 }

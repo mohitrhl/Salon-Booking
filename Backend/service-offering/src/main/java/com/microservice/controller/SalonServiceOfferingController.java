@@ -5,6 +5,8 @@ import com.microservice.payload.dto.CategoryDTO;
 import com.microservice.payload.dto.SalonDTO;
 import com.microservice.payload.dto.ServiceDTO;
 import com.microservice.service.ServiceOfferingService;
+import com.microservice.service.clients.CategoryFeignClient;
+import com.microservice.service.clients.SalonFeignClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,19 +18,21 @@ import org.springframework.web.bind.annotation.*;
 public class SalonServiceOfferingController {
 
     private final ServiceOfferingService serviceOfferingService;
+    private final SalonFeignClient salonService;
+    private final CategoryFeignClient categoryService;
 
     @PostMapping
     public ResponseEntity<ServiceOffering> createService(
+            @RequestHeader("Authorization") String jwt,
             @RequestBody ServiceDTO service) throws Exception {
 
-        SalonDTO salonDTO = new SalonDTO();
-        salonDTO.setId(1L);
+        SalonDTO salon=salonService.getSalonByOwner(jwt).getBody();
 
-        CategoryDTO categoryDTO = new CategoryDTO();
-        categoryDTO.setId(service.getCategory());
+        CategoryDTO category=categoryService
+                .getCategoryById(service.getCategory()).getBody();
 
         ServiceOffering createdService = serviceOfferingService
-                .createService(service,salonDTO,categoryDTO);
+                .createService(service,salon,category);
         return new ResponseEntity<>(createdService, HttpStatus.CREATED);
     }
 

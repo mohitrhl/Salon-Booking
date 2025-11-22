@@ -1,14 +1,18 @@
 package com.microservice.controller;
 
+import com.microservice.exception.UserException;
 import com.microservice.mapper.SalonMapper;
 import com.microservice.modal.Salon;
 import com.microservice.payload.dto.SalonDTO;
 import com.microservice.payload.dto.UserDTO;
 import com.microservice.service.SalonService;
+import com.microservice.service.clients.UserFeignClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -17,78 +21,82 @@ import java.util.List;
 public class SalonController {
 
     private final SalonService salonService;
+    private final UserFeignClient userService;
 
-    @PostMapping("/")
-    public ResponseEntity<SalonDTO> createSalon(@RequestBody SalonDTO salonDTO){
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(1L);
-        Salon salon = salonService.createSalon(salonDTO , userDTO);
-        SalonDTO salonDTO1 = SalonMapper.mapToDTO(salon, userDTO);
-        return ResponseEntity.ok(salonDTO1);
+    @PostMapping
+    public ResponseEntity<SalonDTO> createSalon(
+            @RequestHeader("Authorization") String jwt,
+            @RequestBody SalonDTO salon) throws UserException {
+
+        UserDTO user=userService.getUserFromJwtToken(jwt).getBody();
+        Salon createdSalon = salonService.createSalon(salon,user);
+        SalonDTO salonDTO=SalonMapper.mapToDTO(createdSalon,user);
+
+        return new ResponseEntity<>(salonDTO, HttpStatus.CREATED);
     }
 
-    @PatchMapping("/{salonId}")
+    @PutMapping("/{salonId}")
     public ResponseEntity<SalonDTO> updateSalon(
-            @PathVariable("salonId") Long salonId,
-            @RequestBody Salon salonRequest) throws Exception {
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(1L);
+            @PathVariable Long salonId,
+            @RequestBody Salon salon
+    ) throws Exception {
+        Salon updatedSalon = salonService.updateSalon(salonId, salon);
+        UserDTO user=userService.getUserById(updatedSalon.getOwnerId()).getBody();
 
-        Salon updatedSalon = salonService.updateSalon(salonId, salonRequest, userDTO);
-        SalonDTO salonDTO1 = SalonMapper.mapToDTO(updatedSalon, userDTO);
-        return ResponseEntity.ok(salonDTO1);
+        SalonDTO salonDTO=SalonMapper.mapToDTO(updatedSalon,user);
+
+        return new ResponseEntity<>(salonDTO, HttpStatus.OK);
+
+
     }
 
-    @GetMapping()
-    public ResponseEntity<List<SalonDTO>> getSalons() throws Exception {
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(1L);
+
+    @GetMapping
+    public ResponseEntity<List<SalonDTO>> getAllSalons() throws UserException {
         List<Salon> salons = salonService.getAllSalons();
-        List<SalonDTO> salonDTOS = salons.stream().map((salon) ->{
-            SalonDTO salonDTO = SalonMapper.mapToDTO(salon, userDTO);
-            return salonDTO;
-        }).toList();
+        List<SalonDTO> salonDTOS = new ArrayList<>();
+        for (Salon salon1 : salons) {
+            UserDTO owner = userService.getUserById(salon1.getOwnerId()).getBody();
+            SalonDTO apply = SalonMapper.mapToDTO(salon1, owner);
+            salonDTOS.add(apply);
+        }
         return ResponseEntity.ok(salonDTOS);
     }
 
+
     @GetMapping("/{salonId}")
-    public ResponseEntity<SalonDTO> getSalonById(
-            @PathVariable Long salonId
-    ) throws Exception {
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(1L);
+    public ResponseEntity<SalonDTO> getSalonById(@PathVariable Long salonId) throws Exception {
         Salon salon = salonService.getSalonById(salonId);
-        SalonDTO salonDTO = SalonMapper.mapToDTO(salon, userDTO);
+        if (salon==null) {
+            throw new Exception("salon not exist with id "+ salonId);
+        }
+        UserDTO user=userService.getUserById(salon.getOwnerId()).getBody();
+
+        SalonDTO salonDTO=SalonMapper.mapToDTO(salon,user);
 
         return ResponseEntity.ok(salonDTO);
-
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<SalonDTO>> searchSalons(
-            @RequestParam("city") String city
-    ) throws Exception {
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(1L);
+    public ResponseEntity<List<SalonDTO>> searchSalon(
+            @RequestParam("city") String city) throws Exception {
         List<Salon> salons = salonService.searchSalonByCity(city);
-        List<SalonDTO> salonDTOS = salons.stream().map((salon) ->{
-            SalonDTO salonDTO = SalonMapper.mapToDTO(salon, userDTO);
-            return salonDTO;
-        }).toList();
+        List<SalonDTO> salonDTOS = new ArrayList<>();
+        for (Salon salon1 : salons) {
+            UserDTO owner = userService.getUserById(salon1.getOwnerId()).getBody();
+            SalonDTO apply = SalonMapper.mapToDTO(salon1, owner);
+            salonDTOS.add(apply);
+        }
         return ResponseEntity.ok(salonDTOS);
     }
 
     @GetMapping("/owner")
-    public ResponseEntity<SalonDTO> getSalonByOwnerId(
-            @PathVariable Long salonId
-    ) throws Exception {
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(1L);
+    public ResponseEntity<Salon> getSalonByOwner(
+            @RequestHeader("Authorization")String jwt) throws Exception {
+        UserDTO user=userService.getUserFromJwtToken(jwt).getBody();
+        System.out.println("salon "+user);
+        Salon salon = salonService.getSalonByOwnerId(user.getId());
 
-        Salon salon = salonService.getSalonByOwnerId(userDTO.getId());
-        SalonDTO salonDTO = SalonMapper.mapToDTO(salon, userDTO);
-
-        return ResponseEntity.ok(salonDTO);
-
+        return ResponseEntity.ok(salon);
     }
 }
