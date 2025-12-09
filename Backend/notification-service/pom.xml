@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.microservice</groupId>
-	<artifactId>payment-service</artifactId>
+	<artifactId>notification-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>payment-service</name>
-	<description>payment service for salon booking system</description>
+	<name>notification-service</name>
+	<description>notification service for salon booking</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -28,9 +28,13 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
+		<spring-cloud.version>2025.0.0</spring-cloud.version>
 	</properties>
 	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -42,6 +46,14 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
 		</dependency>
 
 		<dependency>
@@ -65,34 +77,18 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-        <!-- https://mvnrepository.com/artifact/com.razorpay/razorpay-java -->
-        <dependency>
-            <groupId>com.razorpay</groupId>
-            <artifactId>razorpay-java</artifactId>
-            <version>1.4.6</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-        </dependency>
 	</dependencies>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
 		<plugins>
@@ -120,16 +116,6 @@
 					</excludes>
 				</configuration>
 			</plugin>
-            <plugin>
-                <groupId>com.google.cloud.tools</groupId>
-                <artifactId>jib-maven-plugin</artifactId>
-                <version>3.5.0</version>
-                <configuration>
-                    <to>
-                        <image>mohitrhl/payment-service:v1</image>
-                    </to>
-                </configuration>
-            </plugin>
 		</plugins>
 	</build>
 

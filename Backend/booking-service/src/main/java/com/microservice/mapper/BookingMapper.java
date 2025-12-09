@@ -11,13 +11,12 @@ import com.microservice.payload.dto.UserDTO;
 import java.util.Set;
 
 public class BookingMapper {
-
     // Convert Booking entity to BookingDTO
-    public static BookingDTO toDTO(Booking booking
-//                                   Set<ServiceOfferingDTO> serviceOfferingDTOS,
-//                                   SalonDTO salonDTO,
-//                                   UserDTO userDTO
-                                   ) {
+    public static BookingDTO toDTO(Booking booking,
+                                   Set<ServiceOfferingDTO> serviceOfferingDTOS,
+                                   SalonDTO salonDTO,
+                                   UserDTO userDTO
+    ) {
         if (booking == null) {
             return null;
         }
@@ -33,9 +32,9 @@ public class BookingMapper {
         bookingDTO.setTotalPrice(booking.getTotalPrice());
 
         // If services mapping is needed (convert from serviceIds to ServiceOfferingDTOs)
-//        bookingDTO.setServices(serviceOfferingDTOS);
-//        bookingDTO.setCustomer(userDTO);
-//        bookingDTO.setSalon(salonDTO);
+        bookingDTO.setServices(serviceOfferingDTOS);
+        bookingDTO.setCustomer(userDTO);
+        bookingDTO.setSalon(salonDTO);
 
         return bookingDTO;
     }

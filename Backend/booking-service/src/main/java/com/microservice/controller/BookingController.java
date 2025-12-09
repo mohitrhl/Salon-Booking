@@ -1,19 +1,25 @@
 package com.microservice.controller;
 
 import com.microservice.domain.BookingStatus;
+import com.microservice.domain.PaymentMethod;
+import com.microservice.exception.UserException;
 import com.microservice.mapper.BookingMapper;
 import com.microservice.modal.Booking;
 import com.microservice.modal.SalonReport;
 import com.microservice.payload.dto.*;
 import com.microservice.payload.request.BookingRequest;
+import com.microservice.payload.response.PaymentLinkResponse;
 import com.microservice.service.BookingService;
+import com.microservice.service.clients.PaymentFeignClient;
+import com.microservice.service.clients.SalonFeignClient;
+import com.microservice.service.clients.ServiceOfferingFeignClient;
+import com.microservice.service.clients.UserFeignClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,97 +30,47 @@ import java.util.stream.Collectors;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final UserFeignClient userService;
+    private final SalonFeignClient salonService;
+    private final ServiceOfferingFeignClient serviceOfferingService;
+    private final PaymentFeignClient paymentService;
+    private final UserFeignClient userFeignClient;
 
-    public ResponseEntity<Booking> createBooking(
+
+    @PostMapping
+    public ResponseEntity<PaymentLinkResponse> createBooking(
+            @RequestHeader("Authorization") String jwt,
             @RequestParam Long salonId,
-            @RequestBody BookingRequest bookingRequest
-            ) throws Exception {
+            @RequestParam PaymentMethod paymentMethod,
+            @RequestBody BookingRequest bookingRequest) throws Exception {
 
-        UserDTO user = new UserDTO();
-        user.setId(1L);
-
-        SalonDTO salon = new SalonDTO();
-        salon.setId(salonId);
-        salon.setOpenTime(LocalTime.now());
-        salon.setCloseTime(LocalTime.now().plusHours(12));
+        UserDTO user = userService.getUserFromJwtToken(jwt).getBody();
+        SalonDTO salon = salonService.getSalonById(salonId).getBody();
 
         if(salon.getId()==null){
             throw new Exception("Salon not found");
         }
 
-        Set<ServiceOfferingDTO> serviceDtoSet = new HashSet<>();
+        Set<ServiceOfferingDTO> services = serviceOfferingService
+                .getServicesByIds(bookingRequest.getServiceIds()).getBody();
 
-        ServiceOfferingDTO serviceDto = new ServiceOfferingDTO();
-        serviceDto.setId(1L);
-        serviceDto.setPrice(399);
-        serviceDto.setDuration(45);
-        serviceDto.setName("Hair cut for men");
+        Booking createdBooking = bookingService.createBooking(bookingRequest, user, salon, services);
+        PaymentLinkResponse res=paymentService.createPaymentLink(jwt, createdBooking, paymentMethod).getBody();
 
-        serviceDtoSet.add(serviceDto);
-
-        Booking booking = bookingService.createBooking(bookingRequest,
-                user,
-                salon,
-                serviceDtoSet);
-
-        return ResponseEntity.ok(booking);
-
-    }
-
-    @GetMapping("/customer")
-    public ResponseEntity<Set<BookingDTO>> getBookingsByCustomer(){
-
-        List<Booking> bookings = bookingService.getBookingsByCustomer(1L);
-
-        return ResponseEntity.ok(getBookingDTOs(bookings));
-    }
-
-    @GetMapping("/salon")
-    public ResponseEntity<Set<BookingDTO>> getBookingsBySalon(){
-
-        List<Booking> bookings = bookingService.getBookingsBySalon(1L);
-
-        return ResponseEntity.ok(getBookingDTOs(bookings));
+        return new ResponseEntity<>(res, HttpStatus.CREATED);
     }
 
     /**
-     * Get a booking by its ID
+     * Get all bookings for a customer
      */
-    @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long bookingId) throws Exception {
-        Booking booking = bookingService.getBookingById(bookingId);
+    @GetMapping("/customer")
+    public ResponseEntity<Set<BookingDTO>> getBookingsByCustomer(
+            @RequestHeader("Authorization") String jwt)
+            throws UserException {
 
-        return ResponseEntity.ok(BookingMapper.toDTO(booking));
-
-    }
-
-    @PutMapping("/{bookingId}/status")
-    public ResponseEntity<BookingDTO> updateBookingStatus(
-            @PathVariable Long bookingId,
-            @RequestParam BookingStatus status) throws Exception {
-
-        Booking updatedBooking = bookingService.updateBookingStatus(bookingId, status);
-
-        return ResponseEntity.ok(BookingMapper.toDTO(updatedBooking));
-
-    }
-
-    @GetMapping("/slots/salon/{salonId}/date/{date}")
-    public ResponseEntity<List<BookedSlotsDTO>> getBookedSlots(
-            @PathVariable Long salonId,
-            @PathVariable LocalDate date) throws Exception {
-
-        List<Booking> bookings = bookingService.getBookingsByDate(date,salonId);
-
-        List<BookedSlotsDTO> slotsDTOS = bookings.stream()
-                .map(booking -> {
-                    BookedSlotsDTO slotsDTO = new BookedSlotsDTO();
-                    slotsDTO.setStartTime(booking.getStartTime());
-                    slotsDTO.setEndTime(booking.getEndTime());
-                    return slotsDTO;
-                }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(slotsDTOS);
+        UserDTO user = userService.getUserFromJwtToken(jwt).getBody();
+        List<Booking> bookings = bookingService.getBookingsByCustomer(user.getId());
+        return ResponseEntity.ok(getBookingDTOs(bookings));
 
     }
 
@@ -123,21 +79,127 @@ public class BookingController {
      */
     @GetMapping("/report")
     public ResponseEntity<SalonReport> getSalonReport(
+            @RequestHeader("Authorization") String jwt
     ) throws Exception {
 
-        SalonReport report = bookingService.getSalonReport(1L);
+        UserDTO user = userService.getUserFromJwtToken(jwt).getBody();
+
+        SalonDTO salon = salonService.getSalonByOwner(jwt).getBody();
+
+        SalonReport report = bookingService.getSalonReport(salon.getId());
+
 
         return ResponseEntity.ok(report);
 
     }
 
-    private Set<BookingDTO> getBookingDTOs(List<Booking> bookings) {
-        return bookings.stream()
-                .map(booking -> {
-                    return BookingMapper.toDTO(booking);
-                }).collect(Collectors.toSet());
+    @GetMapping("/salon")
+    public ResponseEntity<Set<BookingDTO>> getBookingsBySalon (
+
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+
+        UserDTO user = userService.getUserFromJwtToken(jwt).getBody();
+
+        SalonDTO salon = salonService.getSalonByOwner(jwt).getBody();
+
+        List<Booking> bookings = bookingService.getBookingsBySalon(salon.getId());
+
+        return ResponseEntity.ok(getBookingDTOs(bookings));
+
     }
 
+    private Set<BookingDTO> getBookingDTOs(List<Booking> bookings) {
+
+        return bookings.stream()
+                .map(booking -> {
+                    UserDTO user;
+                    Set<ServiceOfferingDTO> offeringDTOS=serviceOfferingService
+                            .getServicesByIds(booking.getServiceIds()).getBody();
+
+                    SalonDTO salonDTO;
+                    try {
+                        salonDTO=salonService.getSalonById(
+                                booking.getSalonId()
+                        ).getBody();
+                        user= userFeignClient.getUserById(booking.getCustomerId()).getBody();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    return BookingMapper.toDTO(
+                            booking,
+                            offeringDTOS,
+                            salonDTO,user
+                    );
+                })
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Get a booking by its ID
+     */
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long bookingId) {
+        Booking booking = bookingService.getBookingById(bookingId);
+        Set<ServiceOfferingDTO> offeringDTOS=serviceOfferingService
+                .getServicesByIds(booking.getServiceIds()).getBody();
+
+        BookingDTO bookingDTO=BookingMapper.toDTO(booking,
+                offeringDTOS,null,null);
+
+        return ResponseEntity.ok(bookingDTO);
 
 
+    }
+
+    /**
+     * Update the status of a booking
+     */
+    @PutMapping("/{bookingId}/status")
+    public ResponseEntity<BookingDTO> updateBookingStatus(
+            @PathVariable Long bookingId,
+            @RequestParam BookingStatus status) throws Exception {
+
+
+
+        Booking updatedBooking = bookingService.updateBookingStatus(bookingId, status);
+
+        Set<ServiceOfferingDTO> offeringDTOS=serviceOfferingService
+                .getServicesByIds(updatedBooking.getServiceIds()).getBody();
+
+        SalonDTO salonDTO;
+        try {
+            salonDTO=salonService.getSalonById(
+                    updatedBooking.getSalonId()
+            ).getBody();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        BookingDTO bookingDTO=BookingMapper.toDTO(updatedBooking,
+                offeringDTOS,
+                salonDTO,null);
+
+        return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
+
+    }
+
+    @GetMapping("/slots/salon/{salonId}/date/{date}")
+    public ResponseEntity<List<BookedSlotsDTO>> getBookedSlots (
+            @PathVariable Long salonId,
+            @PathVariable LocalDate date,
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+        List<Booking> bookings = bookingService.getBookingsByDate(date,salonId);
+        List<BookedSlotsDTO> slotsDTOS = bookings.stream()
+                .map(booking -> {
+                    BookedSlotsDTO slotDto = new BookedSlotsDTO();
+                    slotDto.setStartTime(booking.getStartTime());
+                    slotDto.setEndTime(booking.getEndTime());
+                    return slotDto;
+                })
+                .toList();
+        return ResponseEntity.ok(slotsDTOS);
+    }
 }

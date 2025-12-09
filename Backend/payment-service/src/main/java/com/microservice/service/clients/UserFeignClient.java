@@ -1,0 +1,17 @@
+package com.microservice.service.clients;
+
+
+import com.microservice.exception.UserException;
+import com.microservice.payload.dto.UserDTO;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+
+@FeignClient("USER-SERVICE")
+public interface UserFeignClient {
+
+    @GetMapping("/api/users/profile")
+    public ResponseEntity<UserDTO> getUserFromJwtToken(
+            @RequestHeader("Authorization") String jwt) throws UserException;
+}
