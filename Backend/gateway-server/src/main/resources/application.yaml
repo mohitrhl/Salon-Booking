@@ -49,6 +49,12 @@ spring:
               predicates:
                 - Path=/api/payments/**
 
+            - id: REVIEW-SERVICE
+              uri:
+                "lb://REVIEW-SERVICE"
+              predicates:
+                - Path= /api/reviews/**
+
   security:
     oauth2:
       resource-server: # Note: resource-server should be hyphenated
