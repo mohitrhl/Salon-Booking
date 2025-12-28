@@ -1,5 +1,6 @@
 server:
   port: 5007
+
 spring:
   application:
     name: notification-service
@@ -14,7 +15,7 @@ spring:
       ddl-auto: update
     show-sql: true
 
-  eureka:
+eureka:
     instance:
       preferIpAddress: true
     client:
