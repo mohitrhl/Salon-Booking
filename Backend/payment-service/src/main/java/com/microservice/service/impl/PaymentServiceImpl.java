@@ -2,6 +2,8 @@ package com.microservice.service.impl;
 
 import com.microservice.domain.PaymentMethod;
 import com.microservice.domain.PaymentOrderStatus;
+import com.microservice.messaging.BookingEventProducer;
+import com.microservice.messaging.NotificationEventProducer;
 import com.microservice.modal.PaymentOrder;
 import com.microservice.payload.dto.BookingDTO;
 import com.microservice.payload.dto.UserDTO;
@@ -27,6 +29,8 @@ import java.util.Optional;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentOrderRepository paymentOrderRepository;
+    private final NotificationEventProducer notificationEventProducer;
+    private final BookingEventProducer bookingEventProducer;
 
     @Value("${razorpay.api.key}")
     private String apiKey;
@@ -88,24 +92,46 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Boolean ProceedPaymentOrder(PaymentOrder paymentOrder,
-                                       String paymentId,
-                                       String paymentLinkId) throws RazorpayException {
+    public Boolean ProceedPaymentOrder(PaymentOrder paymentOrder, String paymentId, String paymentLinkId) throws RazorpayException {
+
         if(paymentOrder.getStatus().equals(PaymentOrderStatus.PENDING)){
-            RazorpayClient razorpay = new RazorpayClient(apiKey, apiSecret);
-            Payment payment = razorpay.payments.fetch(paymentId);
 
-            Integer amount = payment.get("amount");
-            String status = payment.get("status");
+            if(paymentOrder.getPaymentMethod().equals(PaymentMethod.RAZORPAY)){
 
-            if(status.equals("captured")){
+                RazorpayClient razorpay = new RazorpayClient(apiKey, apiSecret);
+                Payment payment = razorpay.payments.fetch(paymentId);
+
+                Integer amount = payment.get("amount");
+                String status = payment.get("status");
+
+                if(status.equals("captured")){
+                    notificationEventProducer.sentNotificationEvent(
+                            paymentOrder.getBookingId(),
+                            paymentOrder.getUserId(),
+                            paymentOrder.getSalonId()
+                    );
+
+                    bookingEventProducer.sentBookingUpdateEvent(paymentOrder);
+
+                    paymentOrder.setStatus(PaymentOrderStatus.SUCCESS);
+                    paymentOrderRepository.save(paymentOrder);
+
+                    return true;
+                }
+                paymentOrder.setStatus(PaymentOrderStatus.FAILED);
+                paymentOrderRepository.save(paymentOrder);
+                return false;
+            }
+            else {
 
                 paymentOrder.setStatus(PaymentOrderStatus.SUCCESS);
                 paymentOrderRepository.save(paymentOrder);
+
                 return true;
             }
 
         }
+
         return false;
     }
 

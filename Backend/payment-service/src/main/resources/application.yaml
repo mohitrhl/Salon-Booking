@@ -15,6 +15,12 @@ spring:
       ddl-auto: update
     show-sql: true
 
+  rabbitmq:
+    port: 5672
+    host: localhost
+    username: guest
+    password: guest
+
 razorpay:
   api:
     key: "rzp_test_RgKSG3cQCs5mgE"

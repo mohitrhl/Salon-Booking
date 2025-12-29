@@ -11,7 +11,7 @@
         <module name="gateway-server" />
         <module name="user-service" />
       </profile>
-      <profile name="Annotation profile for review-service" enabled="true">
+      <profile name="Annotation profile for booking-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -23,8 +23,8 @@
         <module name="review-service" />
         <module name="booking-service" />
         <module name="salon-service" />
-        <module name="service-offering" />
         <module name="notification-service" />
+        <module name="service-offering" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
