@@ -1,0 +1,31 @@
+server:
+  port: 5003
+
+spring:
+  application:
+    name: booking-service
+
+  datasource:
+    url: "jdbc:mysql://localhost:3306/salon_bookingdb?createDatabaseIfNotExist=true"
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: mohitrhl001@
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  rabbitmq:
+    port: 5672
+    host: localhost
+    username: guest
+    password: guest
+
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    fetchRegistry: true
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: http://localhost:8070/eureka/

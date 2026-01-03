@@ -1,0 +1,287 @@
+services:
+
+  # --- DATABASES ---
+  userdb:
+    image: mysql
+    container_name: userdb
+    ports:
+      - 3301:3306
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+      interval: 10s
+      start_period: 10s
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: userdb
+    networks:
+      - mohitrhl
+
+  salondb:
+    image: mysql
+    container_name: salondb
+    ports:
+      - 3302:3306
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+      interval: 10s
+      start_period: 10s
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: salondb
+    networks:
+      - mohitrhl
+
+  bookingdb:
+    image: mysql
+    container_name: bookingdb
+    ports:
+      - 3303:3306
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+      interval: 10s
+      start_period: 10s
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bookingdb
+    networks:
+      - mohitrhl
+
+  categorydb:
+    image: mysql
+    container_name: categorydb
+    ports:
+      - 3304:3306
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+      interval: 10s
+      start_period: 10s
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: categorydb
+    networks:
+      - mohitrhl
+
+  paymentdb:
+    image: mysql
+    container_name: paymentdb
+    ports:
+      - 3307:3306
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+      interval: 10s
+      start_period: 10s
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: paymentdb
+    networks:
+      - mohitrhl
+
+  service-offeringdb:
+    image: mysql
+    container_name: service-offeringdb
+    ports:
+      - 3309:3306
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+      interval: 10s
+      start_period: 10s
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: service-offeringdb
+    networks:
+      - mohitrhl
+
+  # --- MICROSERVICES ---
+
+  eureka-server:
+    image: "mohitrhl/salon-eureka-server:v1"
+    ports:
+      - "8070:8070"
+    container_name: eureka-server
+    # Healthcheck removed (Jib/Distroless image has no shell)
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    networks:
+      - mohitrhl
+
+  user:
+    image: "mohitrhl/salon-user:v1"
+    ports:
+      - "5001:5001"
+    container_name: user-service
+    # No healthcheck needed if tools are missing, rely on restart policy
+    depends_on:
+      userdb:
+        condition: service_healthy
+      # Removed condition for eureka because it has no healthcheck now
+      eureka-server:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    environment:
+      SPRING_APPLICATION_NAME: "user"
+      SPRING_PROFILES_ACTIVE: default
+      SPRING_DATASOURCE_URL: "jdbc:mysql://userdb:3306/userdb"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8070/eureka/
+    networks:
+      - mohitrhl
+
+  salon:
+    image: "mohitrhl/salon:v1"
+    ports:
+      - "5002:5002"
+    container_name: salon
+    depends_on:
+      salondb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    environment:
+      SPRING_APPLICATION_NAME: "salon-service"
+      SPRING_PROFILES_ACTIVE: default
+      SPRING_DATASOURCE_URL: "jdbc:mysql://salondb:3306/salondb"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8070/eureka/
+    networks:
+      - mohitrhl
+
+  booking:
+    image: "mohitrhl/booking-service:v1"
+    ports:
+      - "5003:5003"
+    container_name: booking
+    depends_on:
+      bookingdb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    environment:
+      SPRING_APPLICATION_NAME: "booking-service"
+      SPRING_PROFILES_ACTIVE: default
+      SPRING_DATASOURCE_URL: "jdbc:mysql://bookingdb:3306/bookingdb"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8070/eureka/
+    networks:
+      - mohitrhl
+
+  category:
+    image: "mohitrhl/category-service:v1"
+    ports:
+      - "5004:5004"
+    container_name: category
+    depends_on:
+      categorydb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    environment:
+      SPRING_APPLICATION_NAME: "category-service"
+      SPRING_PROFILES_ACTIVE: default
+      SPRING_DATASOURCE_URL: "jdbc:mysql://categorydb:3306/categorydb"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8070/eureka/
+    networks:
+      - mohitrhl
+
+  payment:
+    image: "mohitrhl/payment-service:v1"
+    ports:
+      - "5006:5006"
+    container_name: payment
+    depends_on:
+      paymentdb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    environment:
+      SPRING_APPLICATION_NAME: "payment-service"
+      SPRING_PROFILES_ACTIVE: default
+      SPRING_DATASOURCE_URL: "jdbc:mysql://paymentdb:3306/paymentdb"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8070/eureka/
+    networks:
+      - mohitrhl
+
+  service-offering:
+    image: "mohitrhl/salon-service-offering:v1"
+    ports:
+      - "5008:5008"
+    container_name: service-offering
+    depends_on:
+      service-offeringdb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    environment:
+      SPRING_APPLICATION_NAME: "service-offering"
+      SPRING_PROFILES_ACTIVE: default
+      SPRING_DATASOURCE_URL: "jdbc:mysql://service-offeringdb:3306/service-offeringdb"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8070/eureka/
+    networks:
+      - mohitrhl
+
+  gateway-server:
+    image: "mohitrhl/salon-gateway-server:v1"
+    ports:
+      - "5000:5000"
+    container_name: gateway-server
+    depends_on:
+      eureka-server:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    environment:
+      SPRING_APPLICATION_NAME: "gateway-server"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8070/eureka/
+    networks:
+      - mohitrhl
+
+networks:
+  mohitrhl:
+    driver: "bridge"
