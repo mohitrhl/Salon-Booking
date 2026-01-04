@@ -2,7 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+<<<<<<< HEAD
+      <module fileurl="file://$PROJECT_DIR$/.idea/frontend.iml" filepath="$PROJECT_DIR$/.idea/frontend.iml" />
+=======
       <module fileurl="file://$PROJECT_DIR$/.idea/Salon-Microservice.iml" filepath="$PROJECT_DIR$/.idea/Salon-Microservice.iml" />
+>>>>>>> e4254b99dbaa8400fd83fe885055d60dcdc90d04
     </modules>
   </component>
 </project>
